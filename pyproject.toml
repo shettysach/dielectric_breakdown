@@ -1,0 +1,17 @@
+[build-system]
+requires = ["setuptools>=64"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "lightning-jax"
+version = "0.1.0"
+description = "A JAX dielectric breakdown simulation"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = ["jax>=0.6"]
+
+[project.optional-dependencies]
+demo = ["matplotlib>=3.8"]
+
+[tool.setuptools.packages.find]
+where = ["src/jax"]
