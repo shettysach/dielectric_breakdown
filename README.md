@@ -2,6 +2,37 @@
 
 This project simulates a two-dimensional dielectric breakdown discharge. JAX compiles the Jacobi relaxation and stochastic growth loops with XLA and runs them on the selected device.
 
+## Off-lattice discharge
+
+With the demo dependencies installed, run these commands from the project root:
+
+```sh
+python -m examples.off_lattice --output off-lattice.png
+python -m examples.off_lattice --steps 1400 --candidates 768 --eta 2.75 --seed 17 --dpi 400 --output off-lattice-large.png
+python -m examples.off_lattice --steps 1500 --candidates 768 --eta 3.15 --bump-size 0.085 --seed 17 --dpi 400 --output off-lattice-thin.png
+python -m examples.off_lattice --steps 250 --animation off-lattice.gif
+```
+
+This is the radial conformal-map DBM. It starts from a conducting unit disk with a logarithmic far-field potential and adds dielectric breakdown bumps at continuously sampled angles. It solves the exterior Laplace problem by mapping the exterior of that disk to the exterior of the growing cluster. This geometry models a discharge growing out from the seed in an unbounded plane. The grid demo below models a gap between opposing electrodes.
+
+For the map `z = F(w)`, the normalized potential at `F(w)` is `log|w|`. On the mapped boundary the field magnitude is `1/|F'(w)|`. The growth density per unit angle is proportional to `|F'|^(1 − eta)` because physical arclength contributes one factor of `|F'|`. Each step estimates that density from stratified random angular candidates and rescales its bump so the nominal growth increment has the same physical size to first order. See [Mathiesen, Jensen, and Bakke](https://arxiv.org/abs/0712.1739) and the [Hastings–Levitov elementary maps](https://pdodds.w3.uvm.edu/files/papers/others/1998/hastings1998a.pdf).
+
+```python
+import jax
+import jax.numpy as jnp
+from lightning_jax import OffLatticeConfig, map_exterior, simulate_off_lattice
+
+result = simulate_off_lattice(OffLatticeConfig(), jax.random.key(7))
+w = jnp.array([1.5 + 0j, 2.0 + 1j])
+position, log_jacobian = map_exterior(result, w)
+potential = jnp.log(jnp.abs(w))
+field_magnitude = jnp.exp(-potential - log_jacobian)
+```
+
+`result.patches[:result.steps]` holds sampled outlines of the added regions, and the result also stores the map angles and bump parameters. `--arc-points` adjusts rendering detail. The simulation reevaluates the accumulated map at every candidate, so increasing the number of growth steps has roughly quadratic cost at a fixed candidate count. For quantitative studies, check sensitivity to `--candidates` and `--bump-size` across multiple seeds.
+
+The thin-channel example uses smaller bumps to resolve finer branches and a larger `eta` to favor growing tips. The seed disk is shown in a muted color.
+
 ## Run the demo
 
 ```sh
